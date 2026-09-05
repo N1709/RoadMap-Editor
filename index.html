@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roadmap - Editor</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,Arial,sans-serif;background:#f4f6f8;color:#111;overflow:hidden}
+  .app{height:100vh;display:flex;flex-direction:column}
+  .topbar{height:64px;background:#fff;border-bottom:1px solid #d8dde3;display:flex;align-items:center;gap:10px;padding:10px 14px;z-index:5}
+  .brand{font-weight:800;font-size:18px;margin-right:auto}
+  button,.file-label{border:1px solid #c9ced5;background:#fff;border-radius:8px;padding:9px 12px;font-weight:650;cursor:pointer}
+  button:hover,.file-label:hover{background:#f0f2f5}
+  select{border:1px solid #c9ced5;background:#fff;border-radius:8px;padding:9px 10px;font-weight:650;cursor:pointer}
+  body.dark{background:#16181d;color:#eee}
+  body.dark .topbar,body.dark .sidebar{background:#1e2127;color:#eee;border-color:#363b44}
+  body.dark .canvas-wrap{background:radial-gradient(circle,#3b414b 1px,transparent 1px) 0 0/20px 20px}
+  body.dark #board{background:#22262d;border-color:#3b414b}
+  body.dark button,body.dark .file-label,body.dark select{background:#292e36;color:#eee;border-color:#464d58}
+  body.dark button:hover,body.dark .file-label:hover{background:#343a44}
+  body.dark .help{background:#24202f;border-color:#6653aa;color:#eee}
+  body.dark .props{border-color:#363b44}
+  body.dark .props input,body.dark .props textarea,body.dark .props select{background:#292e36;color:#eee;border-color:#464d58}
+  body.dark .hint{background:#292e36;color:#c7cbd1;border-color:#464d58}
+  body.dark .note,body.dark .panel{background:#292e36;color:#eee}
+
+  .primary{background:#4d21d1;color:#fff;border-color:#4d21d1}
+  .danger{background:#fff0f0;color:#b42318;border-color:#f2b8b5}
+  .workspace{flex:1;display:flex;min-height:0}
+  .sidebar{width:270px;background:#fff;border-right:1px solid #d8dde3;padding:14px;overflow:auto}
+  .sidebar h3{margin:6px 0 12px;font-size:14px}
+  .toolgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .tool{min-height:68px;text-align:left}
+  .tool strong{display:block;font-size:13px}
+  .tool small{display:block;color:#667085;margin-top:5px;font-weight:500}
+  .help{margin-top:18px;padding:12px;border:1px solid #d6c8ff;background:#faf8ff;border-radius:10px;font-size:12px;line-height:1.5}
+  .canvas-wrap{position:relative;flex:1;overflow:auto;background:
+    radial-gradient(circle,#d8dde4 1px,transparent 1px) 0 0/20px 20px}
+  #board{position:relative;width:1800px;height:1400px;background:#fff;margin:40px;border:1px solid #d8dde3;border-radius:12px;box-shadow:0 8px 30px #00000012;overflow:hidden}
+  #connections{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  .node{position:absolute;min-width:150px;max-width:310px;min-height:46px;border:2px solid #222;border-radius:8px;padding:10px 14px;background:#fff;box-shadow:0 2px 5px #00000012;cursor:grab;user-select:none;z-index:2}
+  .node:active{cursor:grabbing}
+  .node.selected{outline:3px solid #7b61ff;outline-offset:2px}
+  .topic{background:#fff01a;border-color:#111}
+  .checkpoint{background:#292929;color:#fff;border-color:#111}
+  .note{background:#fff;border-color:#5b3fd0;color:#222;min-height:90px}
+  .title{background:#dcecff;border-color:#0878e8;font-size:22px;font-weight:800;text-align:center;padding:22px}
+  .panel{background:#fff;border-color:#5b3fd0}
+  .panel .pill{display:inline-block;background:#4d21d1;color:#fff;border-radius:6px;padding:7px 10px;margin:4px 3px;font-size:12px}
+  .node[contenteditable="true"]{cursor:text;user-select:text}
+  .node .delete-x{display:none;position:absolute;right:-9px;top:-10px;width:20px;height:20px;border-radius:50%;background:#d92d20;color:#fff;text-align:center;line-height:19px;font-size:13px;font-weight:800;cursor:pointer}
+  .node.selected .delete-x{display:block}
+  .props{margin-top:18px;border-top:1px solid #e5e7eb;padding-top:14px}
+  .props label{font-size:12px;font-weight:700;display:block;margin:9px 0 5px}
+  .props input,.props textarea,.props select{width:100%;border:1px solid #cbd1d8;border-radius:7px;padding:8px;font:inherit}
+  .props textarea{min-height:80px;resize:vertical}
+  .status{position:fixed;bottom:12px;right:14px;background:#111;color:#fff;padding:7px 10px;border-radius:7px;font-size:12px;opacity:.88;z-index:10}
+  .hint{position:absolute;left:18px;top:12px;background:#fff;border:1px solid #d8dde3;border-radius:8px;padding:7px 10px;font-size:12px;color:#667085;z-index:4}
+  .legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;font-size:11px}
+  .dot{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px;border:1px solid #555}
+  @media(max-width:800px){.sidebar{width:220px}.brand{font-size:15px}.topbar button{padding:7px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">Roadmap Editor</div>
+    <button class="primary" onclick="addNode('topic')">+ Topik</button>
+    <button onclick="addNode('checkpoint')">+ Checkpoint</button>
+    <button onclick="addNode('note')">+ Catatan</button>
+    <button onclick="startConnect()">Hubungkan</button>
+    <button onclick="saveJSON()">Simpan</button>
+    <label class="file-label">Muat <input id="loadFile" type="file" accept=".json" hidden></label>
+    <button onclick="exportSVG()">Export SVG</button>
+    <button onclick="exportPNG()">Export PNG</button>
+    <select id="languageSelect" title="Language" onchange="setLanguage(this.value)">
+      <option value="id">Bahasa Indonesia</option>
+      <option value="en" selected>English</option>
+    </select>
+    <button onclick="toggleDarkMode()" id="themeBtn">Mode Gelap</button>
+    <button class="danger" onclick="clearBoard()">Hapus Semua</button>
+  </div>
+
+  <div class="workspace">
+    <aside class="sidebar">
+      <h3>Template cepat</h3>
+      <div class="toolgrid">
+        <button class="tool" onclick="addPreset('title')"><strong>Judul</strong><small>Kartu judul utama</small></button>
+        <button class="tool" onclick="addPreset('panel')"><strong>Info Panel</strong><small>Deskripsi roadmap</small></button>
+        <button class="tool" onclick="addPreset('topic')"><strong>Topik</strong><small>Materi utama</small></button>
+        <button class="tool" onclick="addPreset('checkpoint')"><strong>Checkpoint</strong><small>Tanda selesai</small></button>
+        <button class="tool" onclick="addPreset('note')"><strong>Catatan</strong><small>Info tambahan</small></button>
+      </div>
+      <div class="props">
+        <h3>Node terpilih</h3>
+        <label>Tipe</label>
+        <select id="typeInput" onchange="changeType(this.value)">
+          <option value="topic">Topik</option>
+          <option value="checkpoint">Checkpoint</option>
+          <option value="note">Catatan</option>
+          <option value="title">Judul</option>
+          <option value="panel">Info Panel</option>
+        </select>
+        <label>Isi teks</label>
+        <textarea id="textInput" placeholder="Pilih node lalu ubah teks..." oninput="changeText(this.value)"></textarea>
+        <button style="width:100%;margin-top:8px" onclick="deleteSelected()">Hapus Node</button>
+      </div>
+      <div class="help">
+        <b id="helpTitle">Cara pakai</b><br>
+        <span id="helpBody">Klik node untuk memilih.<br>Seret node untuk memindahkan.<br>Edit teks dari panel kiri.<br>Klik <b>Hubungkan</b>, lalu klik node sumber dan node tujuan.<br>Simpan sebagai JSON agar roadmap bisa diedit lagi.</span>
+      </div>
+      <div class="legend">
+        <span><i class="dot" style="background:#fff01a"></i>Topik</span>
+        <span><i class="dot" style="background:#292929"></i>Checkpoint</span>
+        <span><i class="dot" style="background:#fff"></i>Catatan</span>
+      </div>
+    </aside>
+
+    <main class="canvas-wrap" id="canvasWrap">
+      <div class="hint">Canvas roadmap — drag node, zoom dengan Ctrl + wheel</div>
+      <div id="board">
+        <svg id="connections"></svg>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="status" id="status">Siap</div>
+
+<script>
+const board=document.getElementById('board');
+const svg=document.getElementById('connections');
+const textInput=document.getElementById('textInput');
+const typeInput=document.getElementById('typeInput');
+const statusEl=document.getElementById('status');
+let nodes=[], edges=[], selected=null, connectMode=false, connectFrom=null, nextId=1;
+
+const presets=[
+ {type:'title',text:'Custom ROM Development\\n(Simple ROM Porting)\\nfrom Source ROM',x:70,y:55,w:290},
+ {type:'panel',text:'Jika sudah menjadi ROM maintainer, fokus pada Device Tree, Kernel Porting, dan Vendor & HAL Adaptation.\\n\\nTarget: pemula dengan dasar Android/Linux yang ingin melakukan port ROM ke device lain.',x:400,y:55,w:360},
+ {type:'panel',text:'Roadmap ROM & Firmware Porting\\n\\nPengetahuan utama\\nCheckpoint / target project',x:790,y:55,w:330},
+ {type:'topic',text:'1. Linux Environment Setup',x:170,y:350},
+ {type:'checkpoint',text:'Checkpoint - Dev Environment Ready',x:150,y:425},
+ {type:'checkpoint',text:'Checkpoint - ADB & Fastboot Ready',x:150,y:485},
+ {type:'topic',text:'2. Git & Version Control',x:520,y:350},
+ {type:'checkpoint',text:'Checkpoint - ROM Source Cloned',x:500,y:425},
+ {type:'topic',text:'3. Android Architecture',x:850,y:350},
+ {type:'checkpoint',text:'Checkpoint - Architecture Understood',x:820,y:425},
+ {type:'topic',text:'4. Partitions & Images',x:120,y:570},
+ {type:'checkpoint',text:'Checkpoint - Partition Mapping',x:120,y:635},
+ {type:'topic',text:'5. Boot Process & Init',x:450,y:570},
+ {type:'topic',text:'6. Build System (AOSP / Soong)',x:750,y:570},
+ {type:'checkpoint',text:'Checkpoint - Initial Build',x:520,y:650},
+ {type:'topic',text:'7. Device Tree',x:1060,y:570},
+ {type:'checkpoint',text:'Checkpoint - Device-Specific Config',x:1020,y:650},
+ {type:'topic',text:'8. Vendor Files & HAL',x:150,y:780},
+ {type:'topic',text:'9. Proprietary Blobs',x:450,y:780},
+ {type:'topic',text:'10. Init Scripts & Services',x:740,y:780},
+ {type:'checkpoint',text:'Checkpoint - Bootable Test Build',x:490,y:855},
+ {type:'checkpoint',text:'Checkpoint - Functional Build (Wi-Fi, Audio, Camera)',x:450,y:920},
+ {type:'topic',text:'11. Kernel Porting',x:120,y:1040},
+ {type:'topic',text:'12. SELinux Policy',x:480,y:1040},
+ {type:'checkpoint',text:'Checkpoint - Kernel Integration',x:350,y:1110},
+ {type:'topic',text:'13. Device-Specific Optimization',x:760,y:1040},
+ {type:'topic',text:'14. Debugging Tools (adb, logcat, dmesg)',x:1040,y:1040},
+ {type:'checkpoint',text:'Checkpoint - Debugged & Stable Build',x:970,y:1120},
+ {type:'topic',text:'15. CI / Automated Build',x:300,y:1230},
+ {type:'checkpoint',text:'Checkpoint - Automated Build',x:310,y:1300},
+ {type:'topic',text:'16. User Feedback & OTA',x:780,y:1230},
+ {type:'checkpoint',text:'Checkpoint - Community Release',x:700,y:1300},
+ {type:'checkpoint',text:'Checkpoint - OTA Enabled',x:950,y:1300}
+];
+
+function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function setStatus(t){statusEl.textContent=t;clearTimeout(setStatus.t);setStatus.t=setTimeout(()=>statusEl.textContent='Siap',1800)}
+function addNode(type='topic',text='Teks baru',x=400,y=300,w=220){
+  const n={id:nextId++,type,text,x,y,w};
+  nodes.push(n);render();selectNode(n.id);setStatus('Node ditambahkan');
+  return n;
+}
+function addPreset(type){
+  const texts={title:'Judul Roadmap',panel:'Tulis deskripsi roadmap di sini.',topic:'Topik baru',checkpoint:'Checkpoint - Selesai',note:'Catatan tambahan'};
+  const n=addNode(type,texts[type],400+Math.random()*100,300+Math.random()*100,type==='title'?290:220);
+}
+function render(){
+  board.querySelectorAll('.node').forEach(e=>e.remove());
+  nodes.forEach(n=>{
+    const el=document.createElement('div');
+    el.className='node '+n.type;
+    el.dataset.id=n.id;
+    el.style.left=n.x+'px';el.style.top=n.y+'px';el.style.width=(n.w||220)+'px';
+    el.innerHTML='<span class="delete-x" onclick="event.stopPropagation();deleteNode('+n.id+')">×</span>'+esc(n.text).replace(/\n/g,'<br>');
+    el.addEventListener('mousedown',startDrag);
+    el.addEventListener('click',e=>{if(!e.target.classList.contains('delete-x')) selectNode(n.id);});
+    board.appendChild(el);
+  });
+  drawEdges();
+}
+function selectNode(id){
+  selected=nodes.find(n=>n.id===id)||null;
+  document.querySelectorAll('.node').forEach(e=>e.classList.toggle('selected',+e.dataset.id===id));
+  if(selected){textInput.value=selected.text;typeInput.value=selected.type;}
+}
+function changeText(v){if(!selected)return;selected.text=v;render();selectNode(selected.id);}
+function changeType(v){if(!selected)return;selected.type=v;render();selectNode(selected.id);}
+function deleteSelected(){if(selected)deleteNode(selected.id);}
+function deleteNode(id){
+  nodes=nodes.filter(n=>n.id!==id);edges=edges.filter(e=>e.a!==id&&e.b!==id);
+  if(selected?.id===id)selected=null;render();textInput.value='';setStatus('Node dihapus');
+}
+function startDrag(e){
+  if(e.target.classList.contains('delete-x')||e.button!==0)return;
+  const id=+e.currentTarget.dataset.id;selectNode(id);
+  if(connectMode){
+    if(connectFrom===null){connectFrom=id;setStatus('Pilih node tujuan...');}
+    else if(connectFrom!==id){edges.push({a:connectFrom,b:id,dash:false});connectFrom=null;connectMode=false;drawEdges();setStatus('Koneksi dibuat');}
+    return;
+  }
+  const n=nodes.find(x=>x.id===id), sx=e.clientX, sy=e.clientY, ox=n.x, oy=n.y;
+  function move(ev){n.x=Math.max(0,ox+ev.clientX-sx);n.y=Math.max(0,oy+ev.clientY-sy);const el=document.querySelector('[data-id="'+id+'"]');el.style.left=n.x+'px';el.style.top=n.y+'px';drawEdges();}
+  function up(){document.removeEventListener('mousemove',move);document.removeEventListener('mouseup',up);}
+  document.addEventListener('mousemove',move);document.addEventListener('mouseup',up);
+}
+function startConnect(){connectMode=true;connectFrom=null;setStatus('Klik node sumber lalu node tujuan');}
+function center(n){
+  const el=document.querySelector('[data-id="'+n.id+'"]');
+  return {x:n.x+el.offsetWidth/2,y:n.y+el.offsetHeight/2};
+}
+function drawEdges(){
+  svg.innerHTML='<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#0878e8"/></marker></defs>';
+  edges.forEach(e=>{
+    const a=nodes.find(n=>n.id===e.a),b=nodes.find(n=>n.id===e.b);if(!a||!b)return;
+    const A=center(a),B=center(b);
+    const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+    const mid=(A.y+B.y)/2;
+    p.setAttribute('d',`M ${A.x} ${A.y} C ${A.x} ${mid}, ${B.x} ${mid}, ${B.x} ${B.y}`);
+    p.setAttribute('fill','none');p.setAttribute('stroke','#0878e8');p.setAttribute('stroke-width','3');p.setAttribute('marker-end','url(#arrow)');
+    if(e.dash)p.setAttribute('stroke-dasharray','7 6');svg.appendChild(p);
+  });
+}
+function saveJSON(){
+  const blob=new Blob([JSON.stringify({version:1,nodes,edges,nextId},null,2)],{type:'application/json'});
+  download(blob,'roadmap.json');setStatus('Roadmap disimpan');
+}
+document.getElementById('loadFile').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);nodes=d.nodes||[];edges=d.edges||[];nextId=d.nextId||Math.max(0,...nodes.map(n=>n.id))+1;render();setStatus('Roadmap dimuat')}catch{alert('JSON tidak valid')}};r.readAsText(f);
+});
+function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function exportSVG(){
+  const clone=board.cloneNode(true);clone.querySelectorAll('.node').forEach(e=>e.querySelector('.delete-x')?.remove());
+  clone.querySelectorAll('.selected').forEach(e=>e.classList.remove('selected'));
+  clone.style.margin='0';clone.style.boxShadow='none';clone.style.border='0';
+  const styles=`<style>${document.querySelector('style').textContent}</style>`;
+  const svgWrap=`<svg xmlns="http://www.w3.org/2000/svg" width="${board.offsetWidth}" height="${board.offsetHeight}"><foreignObject width="100%" height="100%">${styles}${new XMLSerializer().serializeToString(clone)}</foreignObject></svg>`;
+  download(new Blob([svgWrap],{type:'image/svg+xml'}),'roadmap.svg');
+}
+function exportPNG(){
+  alert('Untuk PNG, gunakan tombol SVG lalu buka SVG di browser dan simpan sebagai gambar. Versi ini sengaja tanpa library eksternal agar HTML tetap 1 file dan offline.');
+}
+function clearBoard(){
+  if(confirm('Hapus seluruh isi roadmap?')){nodes=[];edges=[];selected=null;render();textInput.value='';setStatus('Canvas dikosongkan')}
+}
+
+const translations = {
+  id: {
+    brand:"Roadmap Editor", addTopic:"+ Topik", addCheckpoint:"+ Checkpoint", addNote:"+ Catatan",
+    connect:"Hubungkan", save:"Simpan", load:"Muat", svg:"Export SVG", png:"Export PNG",
+    clear:"Hapus Semua", dark:"Mode Gelap", light:"Mode Terang", selected:"Node terpilih",
+    type:"Tipe", text:"Isi teks", delete:"Hapus Node", quick:"Template cepat",
+    title:"Judul", info:"Info Panel", topic:"Topik", checkpoint:"Checkpoint", note:"Catatan",
+    help:"Cara pakai", helpText:"Klik node untuk memilih.<br>Seret node untuk memindahkan.<br>Edit teks dari panel kiri.<br>Klik <b>Hubungkan</b>, lalu klik node sumber dan node tujuan.<br>Simpan sebagai JSON agar roadmap bisa diedit lagi.",
+    ready:"Siap"
+  },
+  en: {
+    brand:"Roadmap Editor", addTopic:"+ Topic", addCheckpoint:"+ Checkpoint", addNote:"+ Note",
+    connect:"Connect", save:"Save", load:"Load", svg:"Export SVG", png:"Export PNG",
+    clear:"Clear All", dark:"Dark Mode", light:"Light Mode", selected:"Selected node",
+    type:"Type", text:"Text", delete:"Delete Node", quick:"Quick templates",
+    title:"Title", info:"Info Panel", topic:"Topic", checkpoint:"Checkpoint", note:"Note",
+    help:"How to use", helpText:"Click a node to select it.<br>Drag nodes to move them.<br>Edit text from the left panel.<br>Click <b>Connect</b>, then click the source and target nodes.<br>Save as JSON to edit the roadmap later.",
+    ready:"Ready"
+  }
+};
+
+function setLanguage(lang){
+  localStorage.setItem('roadmap-language', lang);
+  const t=translations[lang]||translations.id;
+  document.querySelector('.brand').textContent=t.brand;
+  const buttons=document.querySelectorAll('.topbar button');
+  buttons[0].textContent=t.addTopic;
+  buttons[1].textContent=t.addCheckpoint;
+  buttons[2].textContent=t.addNote;
+  buttons[3].textContent=t.connect;
+  buttons[4].textContent=t.save;
+  document.querySelector('.danger').textContent=t.clear;
+  document.getElementById('themeBtn').textContent=document.body.classList.contains('dark')?t.light:t.dark;
+
+  const labels=document.querySelectorAll('.sidebar .tool');
+  labels[0].querySelector('strong').textContent=t.title;
+  labels[1].querySelector('strong').textContent=t.info;
+  labels[2].querySelector('strong').textContent=t.topic;
+  labels[3].querySelector('strong').textContent=t.checkpoint;
+  labels[4].querySelector('strong').textContent=t.note;
+
+  document.querySelector('.props h3').textContent=t.selected;
+  document.querySelectorAll('.props label')[0].textContent=t.type;
+  document.querySelectorAll('.props label')[1].textContent=t.text;
+  document.querySelector('.props button').textContent=t.delete;
+  document.querySelector('.sidebar .props').previousElementSibling.previousElementSibling.textContent=t.quick;
+  document.getElementById('helpTitle').textContent=t.help;
+  document.getElementById('helpBody').innerHTML=t.helpText;
+  document.getElementById('loadFile').parentElement.childNodes[0].textContent=t.load+" ";
+  document.querySelectorAll('.topbar button')[5].textContent=t.svg;
+  document.querySelectorAll('.topbar button')[6].textContent=t.png;
+  setStatus(t.ready);
+}
+
+function toggleDarkMode(){
+  document.body.classList.toggle('dark');
+  localStorage.setItem('roadmap-dark', document.body.classList.contains('dark')?'1':'0');
+  const lang=document.getElementById('languageSelect').value;
+  setLanguage(lang);
+}
+
+(function initSettings(){
+  const lang=localStorage.getItem('roadmap-language') || 'en';
+  const dark=localStorage.getItem('roadmap-dark')==='1';
+  document.body.classList.toggle('dark',dark);
+  document.getElementById('languageSelect').value=lang;
+  setLanguage(lang);
+})();
+
+function seed(){
+  presets.forEach(p=>addNode(p.type,p.text,p.x,p.y,p.w||220));
+  const pairs=[[4,5],[4,6],[7,8],[7,9],[10,11],[12,13],[14,15],[16,17],[17,18],[19,20],[20,21],[22,23],[23,24],[25,26],[26,27],[27,28],[28,29],[29,30],[30,31],[31,32],[32,33]];
+  edges=pairs.map(([a,b])=>({a,b,dash:false}));
+  render();
+}
+</script>
+</body>
+</html>
